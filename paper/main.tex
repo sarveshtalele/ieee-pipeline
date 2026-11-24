@@ -78,7 +78,7 @@ Each probe is asked three ways, differing in wording but not in what is asked. A
 \subsection{Conditions and models}
 Every probe and phrasing is run twice: once with the question alone, which measures what the model believes, and once with the contradicting document prepended, which measures what it does about the conflict. The first condition is not a control in name only. It is what identifies the subset in which a conflict exists at all, and every headline number in this paper is restricted to that subset.
 
-Six open models span an order of magnitude: GPT-2 at 124M, 355M and 774M~\cite{radford2019language}, Qwen2.5-0.5B-Instruct and Qwen2.5-1.5B-Instruct~\cite{yang2024qwen2}, and TinyLlama-1.1B-Chat~\cite{zhang2024tinyllama}. All run in float32 on CPU, so the numbers reproduce on ordinary hardware rather than depending on a particular accelerator's arithmetic.
+Six open models span an order of magnitude: GPT-2 at 124M, 355M and 774M~\cite{radford2019gpt2}, Qwen2.5-0.5B-Instruct and Qwen2.5-1.5B-Instruct~\cite{yang2024qwen2}, and TinyLlama-1.1B-Chat~\cite{zhang2024tinyllama}. All run in float32 on CPU, so the numbers reproduce on ordinary hardware rather than depending on a particular accelerator's arithmetic.
 
 \subsection{Recorded quantities}
 For a prompt $x$ the model defines a distribution $p_\theta(\cdot \mid x)$ over the vocabulary. Writing $t$ for the first token of the true answer and $c$ for the first token of the counterfactual, we record $p_\theta(t \mid x)$ and $p_\theta(c \mid x)$, the rank of each, and $\arg\max_v p_\theta(v \mid x)$. Rank determines the answer under greedy decoding; probability is what the earlier report used alone.
