@@ -1,0 +1,22 @@
+Title:           The Knowledge Lifecycle of Large Language Models
+Subject:         CoDIT 2027 conference submission
+Keywords:        Knowledge conflict, retrieval-augmented generation, language models, evaluation methodology
+Author:          Amey Thakur; Sarvesh Talele
+Creator:         LaTeX with hyperref
+Producer:        pdfTeX-1.40.28
+CreationDate:    Tue Nov 24 12:54:38 2026 UTC
+ModDate:         Tue Nov 24 12:54:38 2026 UTC
+Custom Metadata: yes
+Metadata Stream: no
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           5
+Encrypted:       no
+Page size:       612 x 792 pts (letter)
+Page rot:        0
+File size:       143679 bytes
+Optimized:       no
+PDF version:     1.7
