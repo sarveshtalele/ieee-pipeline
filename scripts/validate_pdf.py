@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-"""Validate the compiled, deliverable PDFs—not just the LaTeX source."""
+"""Validate the actual conference PDFs after compilation."""
+from __future__ import annotations
+
 from pathlib import Path
+import re
+import subprocess
 import sys
 from pypdf import PdfReader
 
@@ -9,17 +13,20 @@ DIST = ROOT / "dist"
 IDENTIFIED = DIST / "codit2027-ieee.pdf"
 REVIEW = DIST / "codit2027-ieee-review.pdf"
 
-errors = []
-def check(condition, message):
+errors: list[str] = []
+
+
+def check(condition: bool, message: str) -> None:
     print(("PASS" if condition else "FAIL") + ": " + message)
     if not condition:
         errors.append(message)
 
-def inspect_pdf(path):
+
+def inspect_pdf(path: Path):
     if not path.is_file():
         check(False, f"{path.name} exists")
         return None, "", []
-    reader = PdfReader(str(path))
+    reader = PdfReader(str(path), strict=True)
     full_text = "\n".join(page.extract_text() or "" for page in reader.pages)
     annotations = []
     for page in reader.pages:
@@ -27,62 +34,144 @@ def inspect_pdf(path):
             annotations.append(item.get_object())
     return reader, full_text, annotations
 
+
+def validate_page_geometry(reader: PdfReader, label: str) -> None:
+    ok = bool(reader.pages)
+    for page in reader.pages:
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        ok = ok and abs(width - 612.0) < 0.5 and abs(height - 792.0) < 0.5
+    check(ok, f"{label} uses US Letter page geometry on every page")
+
+
+def validate_fonts(path: Path, label: str) -> None:
+    try:
+        result = subprocess.run(
+            ["pdffonts", str(path)], check=True, capture_output=True, text=True
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        check(False, f"{label} font inspection completed: {exc}")
+        return
+    rows = [line for line in result.stdout.splitlines()[2:] if line.strip()]
+    parsed = [line.split() for line in rows]
+    check(bool(parsed), f"{label} contains inspectable PDF fonts")
+    check(all(len(row) >= 8 and row[3].lower() == "yes" for row in parsed),
+          f"{label} embeds every PDF font")
+    check(all(len(row) >= 2 and row[1].lower() != "type" and row[1] != "Type3"
+              for row in parsed),
+          f"{label} contains no Type 3 bitmap fonts")
+    check(any("NimbusRomNo9L" in row[0] for row in parsed),
+          f"{label} uses an embedded Times-compatible Roman text font")
+
+
+def links(annotations):
+    uris = []
+    citations = []
+    for annotation in annotations:
+        action = annotation.get("/A")
+        if action is None:
+            continue
+        uri = action.get("/URI")
+        if uri:
+            uris.append(str(uri))
+        if action.get("/S") == "/GoTo":
+            destination = action.get("/D")
+            if isinstance(destination, str):
+                citations.append(destination)
+            elif destination is not None:
+                citations.append(str(destination))
+    return uris, citations
+
+
 identified, identified_text, identified_annots = inspect_pdf(IDENTIFIED)
 review, review_text, review_annots = inspect_pdf(REVIEW)
 
 if identified is not None:
     check(1 <= len(identified.pages) <= 6,
           f"identified PDF page count within CoDIT regular-paper limit ({len(identified.pages)})")
-    author = str(identified.metadata.get("/Author", "") or "")
+    validate_page_geometry(identified, "identified PDF")
+    validate_fonts(IDENTIFIED, "identified PDF")
+
+    metadata = identified.metadata or {}
+    author = str(metadata.get("/Author", "") or "")
     check("Amey" in author and "Sarvesh" in author,
           "identified PDF author metadata present")
-    check("0000-0001-5644-1575" in identified_text,
-          "Amey ORCID identifier is visible")
-    check("0009-0002-0818-461X" in identified_text,
-          "Sarvesh ORCID identifier is visible")
+    first_page = identified.pages[0].extract_text() or ""
+    check("Amey Thakur" in first_page and "Sarvesh Talele" in first_page,
+          "both author names are visible on the first page")
+    check(first_page.count("Independent Researcher") == 2,
+          "first page shows two separate Independent Researcher affiliations")
+    check("Toronto, Canada" in first_page and "Mumbai, India" in first_page,
+          "each author has the correct separate location")
+    check("ameythakur20@gmail.com" in first_page
+          and "talelesarvesh@gmail.com" in first_page,
+          "each author has an individual email address")
+    check("0000-0001-5644-1575" in first_page
+          and "0009-0002-0818-461X" in first_page,
+          "both ORCID identifiers are visible on the first page")
 
-    uri_links = []
-    cite_destinations = []
-    for annotation in identified_annots:
-        action = annotation.get("/A")
-        if not action:
-            continue
-        if action.get("/URI"):
-            uri_links.append(str(action.get("/URI")))
-        if action.get("/S") == "/GoTo":
-            target = str(action.get("/D", ""))
-            if target.startswith("cite."):
-                cite_destinations.append(target)
+    uri_links, cite_destinations = links(identified_annots)
     for identifier in ("0000-0001-5644-1575", "0009-0002-0818-461X"):
         expected = f"https://orcid.org/{identifier}"
         check(expected in uri_links, f"clickable ORCID URL: {identifier}")
+    for email in ("ameythakur20@gmail.com", "talelesarvesh@gmail.com"):
+        check(f"mailto:{email}" in uri_links, f"clickable author email: {email}")
     named = identified.named_destinations
-    check(bool(cite_destinations), "in-text citation links are present")
-    unresolved = sorted(set(target for target in cite_destinations if target not in named))
+    check(bool(cite_destinations), "identified in-text citation links are present")
+    unresolved = sorted(set(target for target in cite_destinations
+                            if target.startswith("cite.") and target not in named))
     check(not unresolved,
-          "every in-text citation link targets a bibliography destination"
+          "identified citation links resolve to bibliography destinations"
           + (f"; unresolved: {unresolved}" if unresolved else ""))
 
 if review is not None:
     check(1 <= len(review.pages) <= 6,
           f"anonymous review PDF page count within CoDIT regular-paper limit ({len(review.pages)})")
-    author = str(review.metadata.get("/Author", "") or "").strip()
-    check(not author, "anonymous review PDF author metadata is empty")
+    validate_page_geometry(review, "blind-review PDF")
+    validate_fonts(REVIEW, "blind-review PDF")
+
+    metadata = review.metadata or {}
+    author = str(metadata.get("/Author", "") or "").strip()
+    check(not author, "blind-review PDF author metadata is empty")
     first_page = review.pages[0].extract_text() or ""
     check("Anonymous Submission" in first_page,
-          "anonymous title page uses anonymous author block")
-    check("ameythakur20@gmail.com" not in first_page.lower()
-          and "talelesarvesh@gmail.com" not in first_page.lower(),
-          "author email addresses are absent from anonymous title page")
-    check("0000-0001-5644-1575" not in first_page
-          and "0009-0002-0818-461X" not in first_page,
-          "ORCID identifiers are absent from anonymous title page")
-    check(any((a.get("/A") or {}).get("/S") == "/GoTo"
-              and str((a.get("/A") or {}).get("/D", "")).startswith("cite.")
-              for a in review_annots),
-          "anonymous PDF retains linked in-text citations")
+          "blind-review title page uses anonymous author block")
+    check("Independent Researcher" not in first_page
+          and "Toronto, Canada" not in first_page
+          and "Mumbai, India" not in first_page,
+          "blind-review title page contains no author affiliations or locations")
+
+    # Scan the entire document, not just the title page. Self-citations in the
+    # previous build exposed both authors and the code repository in the refs.
+    identity_markers = (
+        "amey", "sarvesh", "thakur", "talele", "ameythakur",
+        "sarveshtalele", "ameythakur20", "talelesarvesh",
+        "0000-0001-5644-1575", "0009-0002-0818-461X",
+    )
+    lower_text = review_text.lower()
+    for marker in identity_markers:
+        check(marker not in lower_text,
+              f"blind-review PDF contains no author identity marker: {marker}")
+    check(review_text.count("Omitted for double-blind review") >= 9,
+          "all author-identifying self-reference entries are redacted")
+    review_uris, review_citations = links(review_annots)
+    identity_url_markers = (
+        "Amey-Thakur", "ameythakur", "sarveshtalele", "talelesarvesh",
+        "0000-0001-5644-1575", "0009-0002-0818-461X",
+    )
+    for marker in identity_url_markers:
+        check(not any(marker.lower() in uri.lower() for uri in review_uris),
+              f"blind-review PDF has no identity-bearing hyperlink: {marker}")
+    check(bool(review_citations),
+          "blind-review PDF retains linked in-text citations")
+    named = review.named_destinations
+    unresolved = sorted(set(target for target in review_citations
+                            if target.startswith("cite.") and target not in named))
+    check(not unresolved,
+          "blind-review citation links resolve to bibliography destinations"
+          + (f"; unresolved: {unresolved}" if unresolved else ""))
 
 if errors:
-    print(f"\n{len(errors)} PDF validation check(s) failed.", file=sys.stderr)
+    print(f"\n{len(errors)} compiled-PDF validation check(s) failed.", file=sys.stderr)
     sys.exit(1)
 print("\nAll compiled-PDF checks passed.")
