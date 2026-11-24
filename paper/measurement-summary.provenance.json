@@ -1,0 +1,9 @@
+{
+  "snapshot_file": "paper/measurement-summary.json",
+  "source_repository": "https://github.com/Amey-Thakur/LLM-KNOWLEDGE-LIFECYCLE",
+  "source_commit": "ada159df52a62fcd8312cda32669e527322ada9a",
+  "source_path": "experiments/counterfactual_summary.json",
+  "source_git_blob_sha": "e876fd7d76f228690859344911ca3aa7b4ba7d96",
+  "copied_on": "2026-11-24",
+  "note": "Read-only source snapshot. Aggregate data only; no research experiments rerun in this conversion pipeline."
+}
