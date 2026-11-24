@@ -19,7 +19,7 @@
 
 ## Data and PDF validation
 
-- `paper/measurement-summary.json` is a snapshot of the source aggregate `counterfactual_summary.json`. Its SHA-256 and the source blob identity are recorded in `paper/measurement-summary.provenance.json`.
+- `paper/measurement-summary.json` is a snapshot of the source aggregate `counterfactual_summary.json`. Its upstream commit and Git blob SHA are recorded in `paper/measurement-summary.provenance.json`.
 - The validation script cross-checks the reported counts and percentages, all six table rows, and the two plotted series against that snapshot.
 - The original experiments are not rerun by this conversion pipeline. Numeric agreement with the snapshot is not an independent replication of the experiment.
 - The identified PDF includes the two separate author blocks, individual locations, emails and ORCID links.
