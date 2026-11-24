@@ -4,8 +4,8 @@ Keywords:        Knowledge conflict, retrieval-augmented generation, language mo
 Author:          
 Creator:         LaTeX with hyperref
 Producer:        pdfTeX-1.40.28
-CreationDate:    Tue Nov 24 12:59:17 2026 UTC
-ModDate:         Tue Nov 24 12:59:17 2026 UTC
+CreationDate:    Tue Nov 24 13:22:34 2026 UTC
+ModDate:         Tue Nov 24 13:22:34 2026 UTC
 Custom Metadata: yes
 Metadata Stream: no
 Tagged:          no
@@ -17,6 +17,6 @@ Pages:           5
 Encrypted:       no
 Page size:       612 x 792 pts (letter)
 Page rot:        0
-File size:       142076 bytes
+File size:       141625 bytes
 Optimized:       no
 PDF version:     1.7
