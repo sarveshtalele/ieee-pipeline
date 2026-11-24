@@ -1,14 +1,26 @@
 name: IEEE paper build
+
 on:
   push:
     branches: [main, "feat/**", "paper/**"]
-    paths: ["paper/**", "scripts/**", ".github/workflows/**", "Makefile"]
+    paths:
+      - "paper/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+      - "Makefile"
+      - "requirements-ci.txt"
   pull_request:
-    paths: ["paper/**", "scripts/**", ".github/workflows/**", "Makefile"]
+    paths:
+      - "paper/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+      - "Makefile"
+      - "requirements-ci.txt"
   workflow_dispatch:
 
+# The default token is read-only. Only the publish job below can write to main.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ieee-build-${{ github.ref }}
@@ -16,32 +28,46 @@ concurrency:
 
 jobs:
   validate-and-build:
+    name: Validate and build both PDFs
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python for PDF inspection
-        uses: actions/setup-python@v5
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - name: Install PDF inspection dependency
-        run: python -m pip install --disable-pip-version-check pypdf
-      - name: Install TeX Live
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Install pinned PDF inspection dependency
+        run: python -m pip install --disable-pip-version-check -r requirements-ci.txt
+
+      - name: Install TeX Live and PDF utilities
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-base texlive-latex-recommended texlive-latex-extra \
             texlive-fonts-recommended texlive-publishers texlive-bibtex-extra \
             texlive-binaries latexmk poppler-utils
-      - name: Validate manuscript source, references and ORCID metadata
+
+      - name: Validate manuscript, bibliography and measurements
         run: make validate
-      - name: Compile identified and blind-review PDFs; enforce page limit
+
+      - name: Compile identified and blind-review PDFs
         run: make build
-      - name: Inspect generated PDF pages, citations, ORCID and anonymity
-        run: python scripts/validate_pdf.py
-      - name: Upload PDFs and build metadata
-        uses: actions/upload-artifact@v4
+
+      - name: Inspect compiled PDFs, layout, fonts, links and anonymity
+        run: make validate-pdf
+
+      - name: Upload validated PDFs and metadata
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: codit2027-ieee-paper
           path: |
@@ -51,15 +77,36 @@ jobs:
             dist/pdfinfo-review.txt
           if-no-files-found: error
           retention-days: 30
-      - name: Publish generated PDFs to the repository
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+  publish:
+    name: Publish PDFs to dist on main
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate-and-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main for publishing
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Download validated build outputs
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: codit2027-ieee-paper
+          path: dist
+
+      - name: Commit and publish PDFs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/codit2027-ieee.pdf dist/codit2027-ieee-review.pdf dist/pdfinfo.txt dist/pdfinfo-review.txt
+          git add dist/codit2027-ieee.pdf dist/codit2027-ieee-review.pdf \
+            dist/pdfinfo.txt dist/pdfinfo-review.txt
           if git diff --cached --quiet; then
-            echo "Generated PDFs are already up to date."
+            echo "Published PDFs are already current."
           else
-            git commit -m "chore(paper): publish generated IEEE PDFs [skip ci]"
-            git push
+            git commit -m "chore(paper): publish validated IEEE PDFs [skip ci]"
+            git push origin HEAD:main
           fi
