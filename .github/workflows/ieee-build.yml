@@ -1,0 +1,45 @@
+name: IEEE paper build
+on:
+  push:
+    branches: [main, "feat/**", "paper/**"]
+    paths: ["paper/**", "scripts/**", ".github/workflows/**", "Makefile"]
+  pull_request:
+    paths: ["paper/**", "scripts/**", ".github/workflows/**", "Makefile"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ieee-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-publishers texlive-bibtex-extra \
+            texlive-binaries latexmk poppler-utils
+      - name: Validate manuscript metadata and citations
+        run: make validate
+      - name: Compile identified and blind-review PDFs; enforce page limit
+        run: make build
+      - name: Upload PDFs and build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: codit2027-ieee-paper
+          path: |
+            dist/codit2027-ieee.pdf
+            dist/codit2027-ieee-review.pdf
+            dist/pdfinfo.txt
+            dist/pdfinfo-review.txt
+          if-no-files-found: error
+          retention-days: 30
