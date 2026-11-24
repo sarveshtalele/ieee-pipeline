@@ -21,6 +21,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Python for PDF inspection
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PDF inspection dependency
+        run: python -m pip install --disable-pip-version-check pypdf
       - name: Install TeX Live
         run: |
           sudo apt-get update
@@ -28,10 +34,12 @@ jobs:
             texlive-latex-base texlive-latex-recommended texlive-latex-extra \
             texlive-fonts-recommended texlive-publishers texlive-bibtex-extra \
             texlive-binaries latexmk poppler-utils
-      - name: Validate manuscript metadata and citations
+      - name: Validate manuscript source, references and ORCID metadata
         run: make validate
       - name: Compile identified and blind-review PDFs; enforce page limit
         run: make build
+      - name: Inspect generated PDF pages, citations, ORCID and anonymity
+        run: python scripts/validate_pdf.py
       - name: Upload PDFs and build metadata
         uses: actions/upload-artifact@v4
         with:
