@@ -138,6 +138,22 @@ for pattern, field, label in chart_specs:
                            and abs(y - expected_y) <= 0.006)
     check(all(comparisons), f"{label} plot coordinates match source results")
 
+    marker_pattern = (
+        r"\\foreach\s+\\x/\\y\s+in\s*\{([^}]*)\}\s*\{\s*"
+        + (r"\\fill\[knowInk\]" if label == "knowledge"
+           else r"\\draw\[adoptInk")
+    )
+    marker_match = re.search(marker_pattern, tex, flags=re.S)
+    check(marker_match is not None, f"{label} marker loop exists")
+    if marker_match:
+        marker_coords = [(float(x), float(y)) for x, y in
+                         re.findall(r"([\d.]+)/([\d.]+)", marker_match.group(1))]
+        aligned = len(marker_coords) == 6 and all(
+            abs(mx - x) < 0.001 and abs(my - y) < 0.001
+            for (mx, my), (x, y) in zip(marker_coords, coordinates)
+        )
+        check(aligned, f"{label} markers align exactly with the plotted line")
+
 # Guard narrative values most likely to drift away from the measurements.
 headline_values = [
     "864 forward passes", "304 cases", "304 genuine conflicts",
