@@ -17,13 +17,13 @@ check_build_logs() {
     exit 1
   fi
 
-  if grep -E 'Warning--|I found no \\\\citation commands|I couldn'\''t open' "$blg"; then
+  if grep -E 'Warning--|I found no .*citation commands|I couldn'\''t open' "$blg"; then
     echo "BibTeX reported a bibliography error in ${job}.blg." >&2
     exit 1
   fi
 
   local underfull
-  underfull="$(grep -c 'Underfull \\\\[hv]box' "$log" || true)"
+  underfull="$(grep -c 'Underfull \\[hv]box' "$log" || true)"
   if [[ "$underfull" -gt 0 ]]; then
     echo "NOTE: ${job} has ${underfull} underfull box warning(s); inspect the rendered PDF."
   fi
