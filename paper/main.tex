@@ -208,5 +208,9 @@ A natural extension is multimodal. When contradicting evidence is an image rathe
 Code, probe set and measurements are publicly available in the authors' repository~\cite{thakur2026code}. The cross-model sweep is also published as a notebook~\cite{thakur2026notebook}, and an interactive demonstration runs in the browser~\cite{thakur2026demo}.
 
 \bibliographystyle{IEEEtran}
-\bibliography{references}
+\ifanonymous
+  \bibliography{references-review}
+\else
+  \bibliography{references}
+\fi
 \end{document}
