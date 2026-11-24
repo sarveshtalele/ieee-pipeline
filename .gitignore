@@ -1,0 +1,28 @@
+# LaTeX build intermediates (deliverable PDFs in dist/ remain tracked)
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.synctex.gz
+paper/*.toc
+paper/*.lof
+paper/*.lot
+paper/*.pdf
+
+# Intermediate build copies; published deliverables are codit2027-*.pdf
+dist/main.pdf
+dist/main-review.pdf
+dist/main-pdfinfo.txt
+dist/main-review-pdfinfo.txt
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
