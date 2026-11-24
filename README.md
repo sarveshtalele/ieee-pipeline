@@ -28,3 +28,6 @@ Use the anonymous PDF for blind review, but inspect all self-citations, reposito
 
 ## Licensing
 Pipeline code and CI configuration are MIT-licensed (`LICENSE`). Manuscript attribution and source-content licence are documented in `PAPER-LICENSE.md`.
+
+
+_Last manuscript build locally verified on 2026-11-24: 5 pages for both identified and blind-review variants._
