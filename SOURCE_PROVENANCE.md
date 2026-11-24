@@ -12,7 +12,7 @@
 ## Conversion and bibliography handling
 
 - Conference manuscript: `paper/main.tex`, IEEEtran 10 pt conference format, two-column output, IEEEtran bibliography style, linked numeric citations.
-- The identified bibliography `paper/references.bib` contains the 33 entries cited by the conference manuscript, sourced from the canonical preprint bibliography. The in-text key `radford2019language` maps to the canonical source key `radford2019gpt2`; this is a citation-key rename only.
+- The identified bibliography `paper/references.bib` contains the 33 entries cited by the conference manuscript, sourced from the canonical preprint bibliography. Citation keys are now aligned with the canonical source keys.
 - Two unused source bibliography records were excluded rather than carried into the conference paper.
 - `paper/references-review.bib` preserves the same citation keys while replacing nine author-identifying self-reference entries with anonymous placeholders. It is selected only for the review build.
 - Bibliographic records are copied from the source bibliography. This pipeline checks required fields, cite-key coverage, duplicates and uncited records, but does not independently re-verify every publisher/DOI record.
