@@ -129,11 +129,12 @@ for pattern, field, label in chart_specs:
     if len(coordinates) != 6:
         continue
     comparisons = []
-    for (display, key), (x, y) in zip(models, coordinates):
+    chart_models = sorted(models, key=lambda pair: summary["models"][pair[1]]["params_m"])
+    for (display, key), (x, y) in zip(chart_models, coordinates):
         item = summary["models"][key]
         expected_x = 9.25 * (math.log10(item["params_m"]) - xmin) / (xmax - xmin)
         expected_y = float(item[field]) / 20.0
-        comparisons.append(abs(x - expected_x) <= 0.011
+        comparisons.append(abs(x - expected_x) <= 0.002
                            and abs(y - expected_y) <= 0.006)
     check(all(comparisons), f"{label} plot coordinates match source results")
 
@@ -142,7 +143,7 @@ headline_values = [
     "864 forward passes", "304 cases", "304 genuine conflicts",
     "66.8\\%", "27.3\\%", "47.9", "57.6",
     "332", "69", "20.8\\%", "25.0\\%", "98.6\\%",
-    "97.2\\%", "38.6\\%", "91.8\\%", "87.3\\%", "0.0\\%",
+    "97.2\\%", "38.6\\%", "91.8\\%", "87.3", "0.0\\%",
     "17.4\\%", "75.0\\%",
 ]
 for value in headline_values:
