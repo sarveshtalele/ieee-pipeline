@@ -52,16 +52,40 @@ def validate_fonts(path: Path, label: str) -> None:
     except (OSError, subprocess.CalledProcessError) as exc:
         check(False, f"{label} font inspection completed: {exc}")
         return
-    rows = [line for line in result.stdout.splitlines()[2:] if line.strip()]
-    parsed = [line.split() for line in rows]
+
+    # pdffonts' Type column can be one token ("TrueType") or several
+    # ("Type 1", "CID Type 0C"). Parse the fixed tail of columns instead of
+    # using fixed split indexes, which incorrectly read "WinAnsi" as emb.
+    parsed = []
+    for line in result.stdout.splitlines()[2:]:
+        parts = line.split()
+        if len(parts) < 8:
+            continue
+        font_name = parts[0]
+        font_type = " ".join(parts[1:-6])
+        encoding = parts[-6]
+        embedded, subset, unicode_map = parts[-5:-2]
+        parsed.append({
+            "name": font_name,
+            "type": font_type,
+            "encoding": encoding,
+            "embedded": embedded.lower(),
+            "subset": subset.lower(),
+            "unicode": unicode_map.lower(),
+        })
+
     check(bool(parsed), f"{label} contains inspectable PDF fonts")
-    check(all(len(row) >= 8 and row[3].lower() == "yes" for row in parsed),
-          f"{label} embeds every PDF font")
-    check(all(len(row) >= 2 and row[1].lower() != "type" and row[1] != "Type3"
-              for row in parsed),
-          f"{label} contains no Type 3 bitmap fonts")
-    check(any("NimbusRomNo9L" in row[0] for row in parsed),
-          f"{label} uses an embedded Times-compatible Roman text font")
+    if parsed:
+        inventory = "; ".join(
+            f"{f['name']} ({f['type']}, embedded={f['embedded']})"
+            for f in parsed
+        )
+        check(all(f["embedded"] == "yes" for f in parsed),
+              f"{label} embeds every PDF font: {inventory}")
+        check(all("type 3" not in f["type"].lower() for f in parsed),
+              f"{label} contains no Type 3 bitmap fonts: {inventory}")
+        check(any("NimbusRomNo9L" in f["name"] for f in parsed),
+              f"{label} uses an embedded Times-compatible Roman text font")
 
 
 def links(annotations):
